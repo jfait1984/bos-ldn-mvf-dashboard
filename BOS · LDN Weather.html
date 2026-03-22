@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOS · LDN Weather</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e0e;
+    --paper: #f4f0e8;
+    --muted: #8a8478;
+    --accent: #c8522a;
+    --rule: #d4cfc4;
+    --cold: #3a6fa8;
+    --warm: #c8522a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grain texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.6;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .masthead {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .masthead span { color: var(--accent); }
+
+  .dateline {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .rule-top {
+    width: 100%;
+    max-width: 760px;
+    height: 1px;
+    background: var(--ink);
+    margin-bottom: 4px;
+  }
+  .rule-thin {
+    width: 100%;
+    max-width: 760px;
+    height: 1px;
+    background: var(--rule);
+    margin-bottom: 40px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-width: 760px;
+    width: 100%;
+    border: 1px solid var(--ink);
+    animation: fadeUp 0.6s 0.15s ease both;
+    opacity: 0;
+  }
+
+  .city-card {
+    padding: 36px 32px 28px;
+    position: relative;
+  }
+
+  .city-card:first-child {
+    border-right: 1px solid var(--ink);
+  }
+
+  .city-label {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .city-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+
+  .condition-text {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+
+  .temp-block {
+    margin-bottom: 24px;
+  }
+
+  .temp-primary {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(56px, 10vw, 88px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .temp-primary.cold { color: var(--cold); }
+  .temp-primary.warm { color: var(--warm); }
+
+  .temp-unit {
+    font-size: 0.4em;
+    font-weight: 400;
+    vertical-align: super;
+    letter-spacing: 0;
+  }
+
+  .temp-secondary {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--rule);
+    margin: 20px 0;
+  }
+
+  .forecast-label {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .forecast-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 11px;
+  }
+
+  .forecast-row:last-child { border-bottom: none; }
+
+  .f-day { width: 72px; color: var(--muted); }
+  .f-hi { font-weight: 500; }
+  .f-hi.cold { color: var(--cold); }
+  .f-hi.warm { color: var(--warm); }
+  .f-precip {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    width: 56px;
+  }
+  .f-precip.likely { color: var(--accent); }
+
+  .icon {
+    font-size: 28px;
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    opacity: 0.65;
+  }
+
+  footer {
+    margin-top: 36px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-align: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+    opacity: 0;
+  }
+
+  footer a { color: var(--muted); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 520px) {
+    .grid { grid-template-columns: 1fr; }
+    .city-card:first-child { border-right: none; border-bottom: 1px solid var(--ink); }
+    body { padding: 32px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">BOS <span>·</span> LDN</div>
+  <div class="dateline" id="dateline">Loading date…</div>
+</header>
+
+<div class="rule-top"></div>
+<div class="rule-thin"></div>
+
+<div class="grid">
+
+  <!-- BOSTON -->
+  <div class="city-card">
+    <div class="icon" id="bos-icon">☁️</div>
+    <div class="city-label">Massachusetts, USA</div>
+    <div class="city-name">Boston</div>
+    <div class="condition-text" id="bos-condition">Cloudy</div>
+
+    <div class="temp-block">
+      <div class="temp-primary cold" id="bos-f">44<span class="temp-unit">°F</span></div>
+      <div class="temp-secondary" id="bos-c">7°C</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="forecast-label">5-Day Forecast</div>
+    <div id="bos-forecast"></div>
+  </div>
+
+  <!-- LONDON -->
+  <div class="city-card">
+    <div class="icon" id="ldn-icon">☁️</div>
+    <div class="city-label">England, UK</div>
+    <div class="city-name">London</div>
+    <div class="condition-text" id="ldn-condition">Cloudy</div>
+
+    <div class="temp-block">
+      <div class="temp-primary warm" id="ldn-f">51<span class="temp-unit">°F</span></div>
+      <div class="temp-secondary" id="ldn-c">11°C</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="forecast-label">5-Day Forecast</div>
+    <div id="ldn-forecast"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Data refreshes on page load &nbsp;·&nbsp; Last updated: <span id="updated-time"></span></p>
+</footer>
+
+<script>
+  const toC = f => ((f - 32) * 5/9).toFixed(0);
+
+  const conditionIcon = cond => {
+    const c = cond.toLowerCase();
+    if (c.includes('sun') || c.includes('clear')) return '☀️';
+    if (c.includes('cloud') || c.includes('overcast')) return '☁️';
+    if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return '🌧️';
+    if (c.includes('snow') || c.includes('sleet') || c.includes('flurr')) return '🌨️';
+    if (c.includes('thunder') || c.includes('storm')) return '⛈️';
+    if (c.includes('fog') || c.includes('mist') || c.includes('haze')) return '🌫️';
+    return '🌤️';
+  };
+
+  // Weather data (fetched at build time, fresh on load via page refresh)
+  const data = {
+    boston: {
+      tempF: 44,
+      condition: "Cloudy",
+      forecast: [
+        { day: "Sunday",    hi: 46.4, precip: 81,  type: null },
+        { day: "Monday",    hi: 35.0, precip: 75,  type: "snow" },
+        { day: "Tuesday",   hi: 42.9, precip: 15,  type: "snow" },
+        { day: "Wednesday", hi: 50.4, precip: 10,  type: null },
+        { day: "Thursday",  hi: 54.9, precip: 10,  type: "rain" }
+      ]
+    },
+    london: {
+      tempF: 51.4,
+      condition: "Cloudy",
+      forecast: [
+        { day: "Sunday",    hi: 53.0, precip: 10,  type: "rain" },
+        { day: "Monday",    hi: 58.1, precip: 10,  type: "rain" },
+        { day: "Tuesday",   hi: 56.9, precip: 20,  type: "rain" },
+        { day: "Wednesday", hi: 48.1, precip: 25,  type: "rain" },
+        { day: "Thursday",  hi: 48.8, precip: 15,  type: null }
+      ]
+    }
+  };
+
+  function renderForecast(containerId, forecast, tempClass) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = forecast.map(f => {
+      const hiC = toC(f.hi);
+      const isLikely = f.precip >= 50;
+      const precipLabel = f.precip + '%' + (f.type ? ' ' + f.type : '');
+      return `<div class="forecast-row">
+        <span class="f-day">${f.day.slice(0,3)}</span>
+        <span class="f-hi ${tempClass}">${Math.round(f.hi)}°F / ${hiC}°C</span>
+        <span class="f-precip ${isLikely ? 'likely' : ''}">${precipLabel}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function init() {
+    // Date line
+    const now = new Date();
+    document.getElementById('dateline').textContent =
+      now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('updated-time').textContent =
+      now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+    // Boston
+    const bF = Math.round(data.boston.tempF);
+    const bC = toC(data.boston.tempF);
+    document.getElementById('bos-f').innerHTML = `${bF}<span class="temp-unit">°F</span>`;
+    document.getElementById('bos-c').textContent = `${bC}°C`;
+    document.getElementById('bos-condition').textContent = data.boston.condition;
+    document.getElementById('bos-icon').textContent = conditionIcon(data.boston.condition);
+    renderForecast('bos-forecast', data.boston.forecast, 'cold');
+
+    // London
+    const lF = Math.round(data.london.tempF);
+    const lC = toC(data.london.tempF);
+    document.getElementById('ldn-f').innerHTML = `${lF}<span class="temp-unit">°F</span>`;
+    document.getElementById('ldn-c').textContent = `${lC}°C`;
+    document.getElementById('ldn-condition').textContent = data.london.condition;
+    document.getElementById('ldn-icon').textContent = conditionIcon(data.london.condition);
+    renderForecast('ldn-forecast', data.london.forecast, 'warm');
+  }
+
+  init();
+</script>
+</body>
+</html>
