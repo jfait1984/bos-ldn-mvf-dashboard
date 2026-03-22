@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston · London MVF Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --border: #2a2f3d;
+    --ink: #e8e4da;
+    --muted: #5a6070;
+    --accent: #e07a4a;
+    --cold: #6aabdc;
+    --warm: #e07a4a;
+    --snow: #a8c8e8;
+    --win: #5a9e6a;
+    --loss: #c05050;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,0.08) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 30%, rgba(255,255,255,0.06) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,0.05) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 80%, rgba(255,255,255,0.07) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 55%, rgba(255,255,255,0.04) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 100; opacity: 0.5;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease both;
+    position: relative; z-index: 1;
+  }
+
+  .masthead {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(20px, 4vw, 38px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .masthead span { color: var(--accent); }
+
+  .dateline {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .rule-top {
+    width: 100%; max-width: 860px;
+    height: 1px; background: var(--border);
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+  }
+  .rule-accent {
+    width: 100%; max-width: 860px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin-bottom: 36px;
+    position: relative; z-index: 1; opacity: 0.4;
+  }
+
+  /* Two-column layout, each column has 3 stacked cards */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 860px;
+    width: 100%;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.6s 0.15s ease both;
+    opacity: 0;
+    align-items: start;
+  }
+
+  .city-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* City column header */
+  .city-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .city-col-name {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  /* Individual section cards */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-card.boston { border-top: 2px solid var(--cold); }
+  .section-card.london { border-top: 2px solid var(--warm); }
+
+  .card-h2 {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* Weather card */
+  .condition-text {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .temp-block {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .temp-primary {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(44px, 8vw, 68px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .temp-primary.cold { color: var(--cold); }
+  .temp-primary.warm { color: var(--warm); }
+
+  .temp-unit {
+    font-size: 0.38em;
+    font-weight: 400;
+    vertical-align: super;
+    letter-spacing: 0;
+  }
+
+  .temp-secondary {
+    font-size: 12px;
+    color: var(--muted);
+    padding-bottom: 6px;
+  }
+
+  .main-icon {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-size: 26px;
+    opacity: 0.65;
+  }
+
+  .forecast-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .forecast-row {
+    display: grid;
+    grid-template-columns: 50px 20px 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+  }
+  .forecast-row:last-child { border-bottom: none; }
+
+  .f-day { color: var(--muted); }
+  .f-icon { font-size: 13px; text-align: center; }
+  .f-hi { font-weight: 500; }
+  .f-hi.cold { color: var(--cold); }
+  .f-hi.warm { color: var(--warm); }
+  .f-precip { font-size: 10px; color: var(--muted); text-align: right; }
+  .f-precip.likely { color: var(--accent); }
+  .f-precip.snow-likely { color: var(--snow); }
+
+  /* Sports card */
+  .sport-block { margin-bottom: 14px; }
+  .sport-block:last-child { margin-bottom: 0; }
+
+  .team-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    border-radius: 50%;
+    background: #1e2530;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+
+  .team-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .team-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .sport-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 10px;
+    border-bottom: 1px solid var(--border);
+    gap: 6px;
+  }
+  .sport-row:last-child { border-bottom: none; }
+
+  .sport-label {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    min-width: 26px;
+  }
+
+  .sport-matchup { flex: 1; color: var(--ink); font-size: 10px; }
+
+  .sport-score { font-weight: 500; font-size: 10px; text-align: right; white-space: nowrap; }
+  .sport-score.win  { color: var(--win); }
+  .sport-score.loss { color: var(--loss); }
+  .sport-score.next { color: var(--muted); font-style: italic; }
+
+  /* News card */
+  .news-loading {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    padding: 4px 0;
+  }
+
+  .news-item {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .news-item:last-child { border-bottom: none; }
+
+  .news-link {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 11px;
+    line-height: 1.5;
+    display: block;
+    transition: color 0.15s;
+  }
+  .news-link:hover { color: var(--accent); }
+
+  .news-date {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.08em;
+  }
+
+  .news-error {
+    font-size: 10px;
+    color: var(--muted);
+    font-style: italic;
+    padding: 4px 0;
+  }
+
+  /* Loading / error */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 0;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    color: var(--accent);
+    font-size: 11px;
+    text-align: center;
+    padding: 24px 16px;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+  }
+
+  footer {
+    margin-top: 28px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-align: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+    opacity: 0;
+    position: relative; z-index: 1;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .dashboard { grid-template-columns: 1fr; }
+    body { padding: 32px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">Boston <span>·</span> London MVF Dashboard</div>
+  <div class="dateline" id="dateline">Loading…</div>
+</header>
+
+<div class="rule-top"></div>
+<div class="rule-accent"></div>
+
+<div class="dashboard">
+  <!-- Boston column -->
+  <div class="city-col" id="col-boston">
+    <div class="city-header">
+      <span class="city-col-name">Boston 🇺🇸</span>
+    </div>
+    <div class="section-card boston" id="card-weather-boston">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+    <div class="section-card boston" id="card-sports-boston">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+    <div class="section-card boston" id="card-news-boston">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+  </div>
+
+  <!-- London column -->
+  <div class="city-col" id="col-london">
+    <div class="city-header">
+      <span class="city-col-name">London 🇬🇧</span>
+    </div>
+    <div class="section-card london" id="card-weather-london">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+    <div class="section-card london" id="card-sports-london">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+    <div class="section-card london" id="card-news-london">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Live weather via Open-Meteo &nbsp;·&nbsp; <span id="updated-time"></span>
+</footer>
+
+<script>
+  const CITIES = [
+    { id: 'boston', name: 'Boston', flag: '🇺🇸', label: 'Massachusetts, USA', lat: 42.3601, lon: -71.0589, tempClass: 'cold' },
+    { id: 'london', name: 'London', flag: '🇬🇧', label: 'England, UK',        lat: 51.5074, lon: -0.1278,  tempClass: 'warm' }
+  ];
+
+  const WMO = {
+    0:['Clear sky','☀️'], 1:['Mainly clear','🌤️'], 2:['Partly cloudy','⛅'], 3:['Overcast','☁️'],
+    45:['Foggy','🌫️'], 48:['Icy fog','🌫️'],
+    51:['Light drizzle','🌦️'], 53:['Drizzle','🌦️'], 55:['Heavy drizzle','🌧️'],
+    61:['Slight rain','🌦️'], 63:['Rain','🌧️'], 65:['Heavy rain','🌧️'],
+    71:['Slight snow','🌨️'], 73:['Snow','🌨️'], 75:['Heavy snow','❄️'], 77:['Snow grains','🌨️'],
+    80:['Rain showers','🌦️'], 81:['Rain showers','🌧️'], 82:['Heavy showers','🌧️'],
+    85:['Snow showers','🌨️'], 86:['Heavy snow shower','❄️'],
+    95:['Thunderstorm','⛈️'], 96:['Thunderstorm','⛈️'], 99:['Thunderstorm','⛈️'],
+  };
+
+  const wmoLabel   = c => (WMO[c]||['Unknown','🌤️'])[0];
+  const wmoIcon    = c => (WMO[c]||['Unknown','🌤️'])[1];
+  const isSnowCode = c => [71,73,75,77,85,86].includes(c);
+  const toF        = c => Math.round(c * 9/5 + 32);
+  const DAYS       = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // ── Sports ────────────────────────────────────────────────────────────────
+  const SPORTS = {
+    boston: [
+      { team: 'Boston Celtics',       logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bos.png',  last: { label:'Last', matchup:'BOS vs MEM',            score:'117–112 W', result:'win',  date:'Mar 20' }, next: { label:'Next', matchup:'BOS vs MIN',            score:'Tonight 8:00 PM',  result:'next' } },
+      { team: 'New England Patriots', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ne.png',   last: { label:'Last', matchup:'NE vs SEA (Super Bowl)', score:'13–29 L',   result:'loss', date:'Feb 8'  }, next: { label:'Next', matchup:'Season starts',          score:'Sep 2026',         result:'next' } },
+      { team: 'Boston Red Sox',       logo: 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png',  last: { label:'Last', matchup:'PIT vs BOS',             score:'6–3 W',     result:'win',  date:'Mar 22' }, next: { label:'Next', matchup:'BOS vs MIN',            score:'Tomorrow 1:05 PM', result:'next' } },
+      { team: 'Boston Bruins',        logo: 'https://a.espncdn.com/i/teamlogos/nhl/500/bos.png',  last: { label:'Last', matchup:'DET vs BOS',             score:'4–2 W',     result:'win',  date:'Mar 21' }, next: { label:'Next', matchup:'BOS vs TOR',            score:'Mar 24, 7:00 PM',  result:'next' } }
+    ],
+    london: [
+      { team: 'Arsenal',  logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/359.png',  last: { label:'Last', matchup:'ARS vs LEV (UCL)',  score:'2–0 W', result:'win',  date:'Mar 17' }, next: { label:'Next', matchup:'ARS vs MCI (League Cup Final)', score:'Today, 4:30 PM',   result:'next' } },
+      { team: 'Chelsea',  logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/363.png',  last: { label:'Last', matchup:'EVE vs CFC (PL)',   score:'3–0 L', result:'loss', date:'Mar 21' }, next: { label:'Next', matchup:'CFC vs Port Vale (FA Cup)',      score:'Apr 4, 11:15 AM',  result:'next' } },
+      { team: 'Everton',  logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/368.png',  last: { label:'Last', matchup:'EVE vs CFC (PL)',   score:'3–0 W', result:'win',  date:'Mar 21' }, next: { label:'Next', matchup:'BRE vs EVE (PL)',               score:'Apr 11, 10:00 AM', result:'next' } },
+      { team: 'Brighton', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/331.png',  last: { label:'Last', matchup:'BRI vs LIV (PL)',   score:'2–1 W', result:'win',  date:'Mar 21' }, next: { label:'Next', matchup:'BUR vs BRI (PL)',               score:'Apr 11, 10:00 AM', result:'next' } }
+    ]
+  };
+
+  // ── News feeds ────────────────────────────────────────────────────────────
+  const NEWS_FEEDS = {
+    boston: ['https://feeds.npr.org/1001/rss.xml', 'https://feeds.reuters.com/reuters/topNews'],
+    london: ['https://feeds.bbci.co.uk/news/england/london/rss.xml', 'https://feeds.bbci.co.uk/news/uk/rss.xml']
+  };
+
+  const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+  // ── Render: Weather ───────────────────────────────────────────────────────
+  function renderWeatherCard(city, data) {
+    const currC  = data.current.temperature_2m;
+    const currF  = toF(currC);
+    const code   = data.current.weathercode;
+    const daily  = data.daily;
+    const metric = city.id === 'london';
+
+    const rows = daily.time.map((dateStr, i) => {
+      const hiC    = daily.temperature_2m_max[i];
+      const hiF    = toF(hiC);
+      const precip = daily.precipitation_probability_max[i] || 0;
+      const wcode  = daily.weathercode[i];
+      const date   = new Date(dateStr + 'T12:00:00');
+      const day    = DAYS[date.getDay()];
+      const snow   = isSnowCode(wcode);
+      const likely = precip >= 50;
+      const pClass = snow && likely ? 'snow-likely' : likely ? 'likely' : '';
+      const tempStr = metric ? `${Math.round(hiC)}°C / ${hiF}°F` : `${hiF}°F / ${Math.round(hiC)}°C`;
+      return `<div class="forecast-row">
+        <span class="f-day">${day}</span>
+        <span class="f-icon">${wmoIcon(wcode)}</span>
+        <span class="f-hi ${city.tempClass}">${tempStr}</span>
+        <span class="f-precip ${pClass}">${precip}%</span>
+      </div>`;
+    }).join('');
+
+    const primaryTemp   = metric ? `${Math.round(currC)}<span class="temp-unit">°C</span>` : `${currF}<span class="temp-unit">°F</span>`;
+    const secondaryTemp = metric ? `${currF}°F` : `${Math.round(currC)}°C`;
+
+    return `
+      <div class="card-h2">☁️ Weather</div>
+      <div class="main-icon">${wmoIcon(code)}</div>
+      <div class="condition-text">${wmoLabel(code)}</div>
+      <div class="temp-block">
+        <div class="temp-primary ${city.tempClass}">${primaryTemp}</div>
+        <div class="temp-secondary">${secondaryTemp}</div>
+      </div>
+      <div class="forecast-label">10-Day Forecast</div>
+      ${rows}
+    `;
+  }
+
+  // ── Render: Sports ────────────────────────────────────────────────────────
+  function renderSportsCard(cityId) {
+    const teams = SPORTS[cityId];
+    return `
+      <div class="card-h2">🏆 Sports</div>
+      ${teams.map(t => `
+        <div class="sport-block">
+          <div class="team-header"><img class="team-logo" src="${t.logo}" alt="${t.team}"><span class="team-name">${t.team}</span></div>
+          <div class="sport-row">
+            <span class="sport-label">${t.last.label}</span>
+            <span class="sport-matchup">${t.last.matchup}${t.last.date ? ' · ' + t.last.date : ''}</span>
+            <span class="sport-score ${t.last.result}">${t.last.score}</span>
+          </div>
+          <div class="sport-row">
+            <span class="sport-label">${t.next.label}</span>
+            <span class="sport-matchup">${t.next.matchup}</span>
+            <span class="sport-score ${t.next.result}">${t.next.score}</span>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  // ── Render: News ──────────────────────────────────────────────────────────
+  async function fetchAndRenderNews(cityId) {
+    const el = document.getElementById(`card-news-${cityId}`);
+    if (!el) return;
+    const feeds = NEWS_FEEDS[cityId];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const articles = [];
+
+    for (const feed of feeds) {
+      if (articles.length >= 3) break;
+      try {
+        const res  = await fetch(`${RSS_PROXY}${encodeURIComponent(feed)}&count=10`);
+        const data = await res.json();
+        if (data.status !== 'ok') continue;
+        for (const item of data.items) {
+          if (articles.length >= 3) break;
+          const pub = new Date(item.pubDate).getTime();
+          if (pub >= sevenDaysAgo) {
+            articles.push({
+              title: item.title,
+              link:  item.link,
+              date:  new Date(item.pubDate).toLocaleDateString('en-US', { month:'short', day:'numeric' })
+            });
+          }
+        }
+      } catch(e) { continue; }
+    }
+
+    const newsHTML = articles.length
+      ? articles.map(a => `
+          <div class="news-item">
+            <a class="news-link" href="${a.link}" target="_blank" rel="noopener">${a.title}</a>
+            <div class="news-date">${a.date}</div>
+          </div>`).join('')
+      : '<div class="news-error">No recent stories found.</div>';
+
+    el.innerHTML = `<div class="card-h2">📰 Top Stories</div>${newsHTML}`;
+  }
+
+  // ── Fetch weather & init ──────────────────────────────────────────────────
+  async function fetchWeather(city) {
+    const url = `https://api.open-meteo.com/v1/forecast`
+      + `?latitude=${city.lat}&longitude=${city.lon}`
+      + `&current=temperature_2m,weathercode`
+      + `&daily=weathercode,temperature_2m_max,precipitation_probability_max`
+      + `&temperature_unit=celsius&timezone=auto&forecast_days=10`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    return res.json();
+  }
+
+  async function init() {
+    const now = new Date();
+    document.getElementById('dateline').textContent =
+      now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('updated-time').textContent =
+      'Last updated ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+    await Promise.all(CITIES.map(async city => {
+      // Weather
+      try {
+        const data = await fetchWeather(city);
+        document.getElementById(`card-weather-${city.id}`).innerHTML = renderWeatherCard(city, data);
+      } catch(e) {
+        document.getElementById(`card-weather-${city.id}`).innerHTML =
+          `<div class="error-msg">Could not load weather.<br>Please refresh.</div>`;
+      }
+      // Sports (instant, no fetch needed)
+      document.getElementById(`card-sports-${city.id}`).innerHTML = renderSportsCard(city.id);
+      // News (async)
+      fetchAndRenderNews(city.id);
+    }));
+  }
+
+  init();
+</script>
+</body>
+</html>
