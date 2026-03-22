@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOS · LDN Weather</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --border: #2a2f3d;
+    --ink: #e8e4da;
+    --muted: #5a6070;
+    --accent: #e07a4a;
+    --cold: #6aabdc;
+    --warm: #e07a4a;
+    --snow: #a8c8e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,0.08) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 30%, rgba(255,255,255,0.06) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,0.05) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 80%, rgba(255,255,255,0.07) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 55%, rgba(255,255,255,0.04) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.5;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease both;
+    position: relative;
+    z-index: 1;
+  }
+
+  .masthead {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  .masthead span { color: var(--accent); }
+
+  .dateline {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .rule-top {
+    width: 100%; max-width: 820px;
+    height: 1px; background: var(--border);
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+  }
+  .rule-accent {
+    width: 100%; max-width: 820px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin-bottom: 36px;
+    position: relative; z-index: 1;
+    opacity: 0.4;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 820px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.15s ease both;
+    opacity: 0;
+  }
+
+  .city-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 32px 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .city-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+  }
+  .city-card.boston::before { background: linear-gradient(90deg, var(--cold), transparent); }
+  .city-card.london::before { background: linear-gradient(90deg, var(--warm), transparent); }
+
+  .city-label {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .city-name {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+
+  .condition-text {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .temp-block {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .temp-primary {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: clamp(52px, 9vw, 80px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .temp-primary.cold { color: var(--cold); }
+  .temp-primary.warm { color: var(--warm); }
+
+  .temp-unit {
+    font-size: 0.38em;
+    font-weight: 400;
+    vertical-align: super;
+    letter-spacing: 0;
+  }
+
+  .temp-secondary {
+    font-size: 13px;
+    color: var(--muted);
+    padding-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .main-icon {
+    position: absolute;
+    top: 24px; right: 24px;
+    font-size: 32px;
+    opacity: 0.7;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 18px 0 16px;
+  }
+
+  .forecast-label {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .forecast-row {
+    display: grid;
+    grid-template-columns: 54px 22px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .forecast-row:last-child { border-bottom: none; }
+
+  .f-day { color: var(--muted); }
+  .f-icon { font-size: 14px; text-align: center; }
+  .f-hi { font-weight: 500; }
+  .f-hi.cold { color: var(--cold); }
+  .f-hi.warm { color: var(--warm); }
+  .f-precip { font-size: 10px; color: var(--muted); text-align: right; }
+  .f-precip.likely { color: var(--accent); }
+  .f-precip.snow-likely { color: var(--snow); }
+
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 0;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .spinner {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    color: var(--accent);
+    font-size: 11px;
+    text-align: center;
+    padding: 32px 16px;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+  }
+
+  footer {
+    margin-top: 28px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-align: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+    opacity: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    body { padding: 32px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">BOS <span>·</span> LDN</div>
+  <div class="dateline" id="dateline">Loading…</div>
+</header>
+
+<div class="rule-top"></div>
+<div class="rule-accent"></div>
+
+<div class="grid" id="main-grid">
+  <div class="city-card boston">
+    <div class="loading"><div class="spinner"></div>Fetching Boston…</div>
+  </div>
+  <div class="city-card london">
+    <div class="loading"><div class="spinner"></div>Fetching London…</div>
+  </div>
+</div>
+
+<footer>
+  Live data via Open-Meteo &nbsp;·&nbsp; <span id="updated-time"></span>
+</footer>
+
+<script>
+  const CITIES = [
+    { id: 'boston', name: 'Boston',  label: 'Massachusetts, USA', lat: 42.3601, lon: -71.0589, tempClass: 'cold', cardClass: 'boston' },
+    { id: 'london', name: 'London',  label: 'England, UK',        lat: 51.5074, lon: -0.1278,  tempClass: 'warm', cardClass: 'london' }
+  ];
+
+  const WMO = {
+    0:  ['Clear sky',         '☀️'],
+    1:  ['Mainly clear',      '🌤️'],
+    2:  ['Partly cloudy',     '⛅'],
+    3:  ['Overcast',          '☁️'],
+    45: ['Foggy',             '🌫️'],
+    48: ['Icy fog',           '🌫️'],
+    51: ['Light drizzle',     '🌦️'],
+    53: ['Drizzle',           '🌦️'],
+    55: ['Heavy drizzle',     '🌧️'],
+    61: ['Slight rain',       '🌦️'],
+    63: ['Rain',              '🌧️'],
+    65: ['Heavy rain',        '🌧️'],
+    71: ['Slight snow',       '🌨️'],
+    73: ['Snow',              '🌨️'],
+    75: ['Heavy snow',        '❄️'],
+    77: ['Snow grains',       '🌨️'],
+    80: ['Rain showers',      '🌦️'],
+    81: ['Rain showers',      '🌧️'],
+    82: ['Heavy showers',     '🌧️'],
+    85: ['Snow showers',      '🌨️'],
+    86: ['Heavy snow shower', '❄️'],
+    95: ['Thunderstorm',      '⛈️'],
+    96: ['Thunderstorm',      '⛈️'],
+    99: ['Thunderstorm',      '⛈️'],
+  };
+
+  const wmoLabel = code => (WMO[code] || ['Unknown','🌤️'])[0];
+  const wmoIcon  = code => (WMO[code] || ['Unknown','🌤️'])[1];
+  const isSnowCode = code => [71,73,75,77,85,86].includes(code);
+
+  const toF = c => Math.round(c * 9/5 + 32);
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  async function fetchCity(city) {
+    const url = `https://api.open-meteo.com/v1/forecast`
+      + `?latitude=${city.lat}&longitude=${city.lon}`
+      + `&current=temperature_2m,weathercode`
+      + `&daily=weathercode,temperature_2m_max,precipitation_probability_max`
+      + `&temperature_unit=celsius&timezone=auto&forecast_days=10`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    return res.json();
+  }
+
+  function renderCard(city, data) {
+    const currC  = data.current.temperature_2m;
+    const currF  = toF(currC);
+    const code   = data.current.weathercode;
+    const daily  = data.daily;
+
+    const rows = daily.time.map((dateStr, i) => {
+      const hiC    = daily.temperature_2m_max[i];
+      const hiF    = toF(hiC);
+      const precip = daily.precipitation_probability_max[i] || 0;
+      const wcode  = daily.weathercode[i];
+      const date   = new Date(dateStr + 'T12:00:00');
+      const day    = DAYS[date.getDay()];
+      const snow   = isSnowCode(wcode);
+      const likely = precip >= 50;
+      const pClass = snow && likely ? 'snow-likely' : likely ? 'likely' : '';
+
+      return `<div class="forecast-row">
+        <span class="f-day">${day}</span>
+        <span class="f-icon">${wmoIcon(wcode)}</span>
+        <span class="f-hi ${city.tempClass}">${hiF}°F / ${Math.round(hiC)}°C</span>
+        <span class="f-precip ${pClass}">${precip}%</span>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="main-icon">${wmoIcon(code)}</div>
+      <div class="city-label">${city.label}</div>
+      <div class="city-name">${city.name}</div>
+      <div class="condition-text">${wmoLabel(code)}</div>
+      <div class="temp-block">
+        <div class="temp-primary ${city.tempClass}">${currF}<span class="temp-unit">°F</span></div>
+        <div class="temp-secondary">${Math.round(currC)}°C</div>
+      </div>
+      <div class="divider"></div>
+      <div class="forecast-label">10-Day Forecast</div>
+      ${rows}
+    `;
+  }
+
+  async function init() {
+    const now = new Date();
+    document.getElementById('dateline').textContent =
+      now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('updated-time').textContent =
+      'Last updated ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+    const cards = document.querySelectorAll('#main-grid .city-card');
+
+    await Promise.all(CITIES.map(async (city, i) => {
+      try {
+        const data = await fetchCity(city);
+        cards[i].innerHTML = renderCard(city, data);
+      } catch(e) {
+        cards[i].innerHTML = `<div class="error-msg">Could not load ${city.name} weather.<br>Please refresh the page.</div>`;
+      }
+    }));
+  }
+
+  init();
+</script>
+</body>
+</html>
