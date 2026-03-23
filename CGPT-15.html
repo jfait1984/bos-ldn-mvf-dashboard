@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston - London MVF Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d0f14;--surface:#151820;--border:#2a2f3d;--ink:#e8e4da;--muted:#5a6070;--accent:#e07a4a;--cold:#6aabdc;--warm:#e07a4a;--snow:#a8c8e8;--win:#5a9e6a;--loss:#c05050}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'DM Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:36px 32px 36px 288px;position:relative;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(1px 1px at 20% 15%,rgba(255,255,255,0.08) 0%,transparent 100%),radial-gradient(1px 1px at 75% 30%,rgba(255,255,255,0.06) 0%,transparent 100%);pointer-events:none;z-index:0}
+  body::after{content:'';position:fixed;left:268px;top:24px;bottom:24px;width:1px;background:linear-gradient(180deg,transparent,rgba(90,96,112,0.65),transparent);pointer-events:none;z-index:0}
+  header{text-align:center;margin:0 auto 40px;max-width:980px;width:100%;animation:fadeUp 0.6s ease both;position:relative;z-index:1}
+  .masthead{font-family:'Nunito Sans',sans-serif;font-size:clamp(20px,4vw,38px);font-weight:900;letter-spacing:-0.02em;color:var(--ink)}
+  .masthead span{color:var(--accent)}
+  .dateline{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-top:12px}
+  .rule-top{width:100%;max-width:980px;height:1px;background:var(--border);margin:0 auto 4px;position:relative;z-index:1}
+  .rule-accent{width:100%;max-width:980px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:0 auto 36px;position:relative;z-index:1;opacity:0.4}
+  .dashboard{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:980px;width:100%;margin:0 auto;position:relative;z-index:1;animation:fadeUp 0.6s 0.15s ease both;opacity:0;align-items:start}
+  .city-col{display:flex;flex-direction:column;gap:16px}
+  .city-col-name{font-family:'Nunito Sans',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:900;color:var(--ink);letter-spacing:-0.01em;margin-bottom:4px}
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:20px 22px;position:relative;overflow:hidden}
+  .section-card.boston{border-top:2px solid var(--cold)}
+  .section-card.london{border-top:2px solid var(--warm)}
+  .card-h2{font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+  .condition-text{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .temp-block{display:flex;align-items:flex-end;gap:12px;margin-bottom:18px}
+  .temp-primary{font-family:'Nunito Sans',sans-serif;font-size:clamp(44px,8vw,68px);font-weight:900;line-height:1;letter-spacing:-0.04em}
+  .temp-primary.cold{color:var(--cold)}.temp-primary.warm{color:var(--warm)}
+  .temp-unit{font-size:0.38em;font-weight:400;vertical-align:super;letter-spacing:0}
+  .temp-secondary{font-size:12px;color:var(--muted);padding-bottom:6px}
+  .main-icon{position:absolute;top:18px;right:18px;font-size:26px;opacity:0.65}
+  .forecast-label{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .forecast-row{display:grid;grid-template-columns:50px 20px 1fr auto;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px}
+  .forecast-row:last-child{border-bottom:none}
+  .f-day{color:var(--muted)}.f-icon{font-size:13px;text-align:center}.f-hi{font-weight:500}
+  .f-hi.cold{color:var(--cold)}.f-hi.warm{color:var(--warm)}
+  .f-precip{font-size:10px;color:var(--muted);text-align:right}
+  .f-precip.likely{color:var(--accent)}.f-precip.snow-likely{color:var(--snow)}
+  .sport-block{margin-bottom:14px}.sport-block:last-child{margin-bottom:0}
+  .team-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .team-logo{width:22px;height:22px;object-fit:contain;border-radius:50%;background:#1e2530;padding:2px;flex-shrink:0}
+  .team-name{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);line-height:1}
+  .sport-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10px;border-bottom:1px solid var(--border);gap:6px}
+  .sport-row:last-child{border-bottom:none}
+  .sport-label{color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;min-width:26px;flex-shrink:0}
+  .sport-matchup{flex:1;color:var(--ink);font-size:10px}
+  .sport-score{font-weight:500;font-size:10px;text-align:right;white-space:nowrap}
+  .sport-score.win{color:var(--win)}.sport-score.loss{color:var(--loss)}.sport-score.next{color:var(--muted);font-style:italic}
+  .news-item{padding:6px 0;border-bottom:1px solid var(--border)}.news-item:last-child{border-bottom:none}
+  .news-link{color:var(--ink);text-decoration:none;font-size:11px;line-height:1.5;display:block;transition:color 0.15s}
+  .news-link:hover{color:var(--accent)}
+  .news-date{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:0.08em}
+  .news-error{font-size:10px;color:var(--muted);font-style:italic;padding:4px 0}
+  .loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;color:var(--muted);font-size:11px;letter-spacing:0.14em;text-transform:uppercase}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .tabs{display:flex;flex-direction:column;gap:10px;width:220px;margin:0;position:fixed;left:32px;top:126px;z-index:3;animation:fadeUp 0.75s 0.12s cubic-bezier(.22,1,.36,1) both;opacity:0;padding:16px;border:1px solid var(--border);border-radius:24px;background:rgba(21,24,32,0.82);backdrop-filter:blur(12px);box-shadow:0 20px 50px rgba(0,0,0,0.26)}
+  .tab-btn{appearance:none;border:1px solid transparent;background:rgba(255,255,255,0.02);color:var(--ink);padding:13px 15px;border-radius:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:flex-start;gap:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;transition:transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;backdrop-filter:blur(6px);width:100%;white-space:nowrap}
+  .tab-btn:hover{transform:translateX(3px);border-color:rgba(224,122,74,0.30);background:rgba(255,255,255,0.05);color:#fff}
+  .tab-btn.active{background:linear-gradient(180deg,rgba(224,122,74,0.24),rgba(224,122,74,0.10));border-color:rgba(224,122,74,0.55);box-shadow:0 0 0 1px rgba(224,122,74,0.14) inset, 0 12px 28px rgba(0,0,0,0.2)}
+  .tab-icon{font-size:13px;line-height:1;display:inline-block;transform:translateY(-1px);flex:0 0 auto}
+  .tab-label{display:inline-block;overflow:hidden}
+  .dashboard.filtering .section-card,.dashboard.filtering .city-col-name{pointer-events:none}
+  .dashboard.filter-weather .section-card[data-category]:not([data-category='weather']),.dashboard.filter-sports .section-card[data-category]:not([data-category='sports']),.dashboard.filter-news .section-card[data-category]:not([data-category='news']){opacity:0;transform:translateY(22px) scale(0.975);filter:blur(10px);max-height:0;margin:0;padding-top:0;padding-bottom:0;border-width:0;overflow:hidden}
+  .section-card,.city-col-name{transition:opacity 0.72s cubic-bezier(.22,1,.36,1), transform 0.72s cubic-bezier(.22,1,.36,1), filter 0.72s cubic-bezier(.22,1,.36,1), max-height 0.72s cubic-bezier(.22,1,.36,1), margin 0.72s cubic-bezier(.22,1,.36,1), padding 0.72s cubic-bezier(.22,1,.36,1), border-width 0.72s cubic-bezier(.22,1,.36,1);transform-origin:top center;will-change:transform,opacity,filter}
+  .section-card.is-entering{animation:cardReveal 0.9s cubic-bezier(.16,1,.3,1) both}
+  @keyframes cardReveal{0%{opacity:0;transform:translateY(22px) scale(0.975) rotateX(5deg);filter:blur(12px)}55%{opacity:1;transform:translateY(-4px) scale(1.01) rotateX(0deg);filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+  footer{margin:28px auto 0;max-width:980px;width:100%;font-size:10px;letter-spacing:0.14em;color:var(--muted);text-align:center;animation:fadeUp 0.6s 0.3s ease both;opacity:0;position:relative;z-index:1}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  @media(max-width:960px){body{padding:24px 16px 32px}body::after{display:none}.tabs{position:sticky;left:auto;top:12px;width:100%;max-width:980px;margin:0 auto 20px;flex-direction:row;flex-wrap:wrap;align-items:stretch;justify-content:center;padding:12px;border-radius:20px;z-index:10}.tab-btn{width:auto;flex:1 1 180px;justify-content:center;padding:12px 14px}header,.rule-top,.rule-accent,.dashboard,footer{max-width:980px}}
+  @media(max-width:640px){header{margin-bottom:28px}.dashboard{grid-template-columns:1fr}.tabs{top:8px;padding:10px;gap:8px}.tab-btn{flex:1 1 calc(50% - 8px);min-width:135px;padding:11px 12px;font-size:9px}.masthead{padding-right:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="masthead">Boston <span>&middot;</span> London MVF Dashboard</div>
+  <div class="dateline" id="dateline">Loading...</div>
+</header>
+<div class="rule-top"></div>
+<div class="rule-accent"></div>
+<nav class="tabs" aria-label="Dashboard sections">
+  <button class="tab-btn active" type="button" data-tab="all" title="Dashboard"><span class="tab-icon">&#x1F5C2;&#xFE0F;</span><span class="tab-label">Dashboard</span></button>
+  <button class="tab-btn" type="button" data-tab="weather" title="Weather"><span class="tab-icon">&#9729;&#xFE0F;</span><span class="tab-label">Weather</span></button>
+  <button class="tab-btn" type="button" data-tab="sports" title="Sports"><span class="tab-icon">&#x1F3C6;</span><span class="tab-label">Sports</span></button>
+  <button class="tab-btn" type="button" data-tab="news" title="Business &amp; AI"><span class="tab-icon">&#x1F916;</span><span class="tab-label">Business &amp; AI</span></button>
+</nav>
+<div class="dashboard" id="dashboard-grid">
+  <div class="city-col">
+    <div class="city-col-name">Boston &#x1F1FA;&#x1F1F8;</div>
+    <div class="section-card boston" data-category="weather" id="card-weather-boston"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    <div class="section-card boston" data-category="sports" id="card-sports-boston"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    <div class="section-card boston" data-category="news" id="card-news-boston"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+  <div class="city-col">
+    <div class="city-col-name">London &#x1F1EC;&#x1F1E7;</div>
+    <div class="section-card london" data-category="weather" id="card-weather-london"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    <div class="section-card london" data-category="sports" id="card-sports-london"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    <div class="section-card london" data-category="news" id="card-news-london"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+</div>
+<footer>Live data via Open-Meteo &amp; ESPN &nbsp;&middot;&nbsp; <span id="updated-time"></span></footer>
+<script>
+const CITIES=[{id:'boston',lat:42.3601,lon:-71.0589,tempClass:'cold'},{id:'london',lat:51.5074,lon:-0.1278,tempClass:'warm'}];
+const WMO={0:['Clear sky','&#9728;&#65039;'],1:['Mainly clear','&#127780;&#65039;'],2:['Partly cloudy','&#9925;'],3:['Overcast','&#9729;&#65039;'],45:['Foggy','&#127787;&#65039;'],48:['Icy fog','&#127787;&#65039;'],51:['Light drizzle','&#127782;&#65039;'],53:['Drizzle','&#127782;&#65039;'],55:['Heavy drizzle','&#127783;&#65039;'],61:['Slight rain','&#127782;&#65039;'],63:['Rain','&#127783;&#65039;'],65:['Heavy rain','&#127783;&#65039;'],71:['Slight snow','&#127784;&#65039;'],73:['Snow','&#127784;&#65039;'],75:['Heavy snow','&#10052;&#65039;'],77:['Snow grains','&#127784;&#65039;'],80:['Rain showers','&#127782;&#65039;'],81:['Rain showers','&#127783;&#65039;'],82:['Heavy showers','&#127783;&#65039;'],85:['Snow showers','&#127784;&#65039;'],86:['Heavy snow shower','&#10052;&#65039;'],95:['Thunderstorm','&#9928;&#65039;'],96:['Thunderstorm','&#9928;&#65039;'],99:['Thunderstorm','&#9928;&#65039;']};
+const wmoLabel=c=>(WMO[c]||['Unknown','&#127780;&#65039;'])[0];
+const wmoIcon=c=>(WMO[c]||['Unknown','&#127780;&#65039;'])[1];
+const isSnowCode=c=>[71,73,75,77,85,86].includes(c);
+const toF=c=>Math.round(c*9/5+32);
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const ESPN='https://site.api.espn.com/apis/site/v2/sports';
+const TEAMS={
+  boston:[
+    {name:'Boston Celtics',      logo:'https://a.espncdn.com/i/teamlogos/nba/500/bos.png', url:`${ESPN}/basketball/nba/teams/2/schedule`,  extraUrl:`${ESPN}/basketball/nba/teams/2/schedule?seasontype=3`,  abbr:'BOS'},
+    {name:'New England Patriots',logo:'https://a.espncdn.com/i/teamlogos/nfl/500/ne.png',  url:`${ESPN}/football/nfl/teams/17/schedule`,   extraUrl:`${ESPN}/football/nfl/teams/17/schedule?seasontype=3`,   abbr:'NE'},
+    {name:'Boston Red Sox',      logo:'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png', url:`${ESPN}/baseball/mlb/teams/2/schedule`,    extraUrl:`${ESPN}/baseball/mlb/teams/2/schedule?seasontype=3`,    abbr:'BOS'},
+    {name:'Boston Bruins',       logo:'https://a.espncdn.com/i/teamlogos/nhl/500/bos.png', url:`${ESPN}/hockey/nhl/teams/1/schedule`,      extraUrl:`${ESPN}/hockey/nhl/teams/1/schedule?seasontype=3`,      abbr:'BOS'}
+  ],
+  london:[
+    {name:'Arsenal', logo:'https://a.espncdn.com/i/teamlogos/soccer/500/359.png', url:`${ESPN}/soccer/all/teams/359/schedule`,fixtureUrl:`${ESPN}/soccer/all/teams/359/schedule?fixture=true`,abbr:'ARS'},
+    {name:'Chelsea', logo:'https://a.espncdn.com/i/teamlogos/soccer/500/363.png', url:`${ESPN}/soccer/all/teams/363/schedule`,fixtureUrl:`${ESPN}/soccer/all/teams/363/schedule?fixture=true`,abbr:'CHE'},
+    {name:'Everton', logo:'https://a.espncdn.com/i/teamlogos/soccer/500/368.png', url:`${ESPN}/soccer/all/teams/368/schedule`,fixtureUrl:`${ESPN}/soccer/all/teams/368/schedule?fixture=true`,abbr:'EVE'},
+    {name:'Brighton',logo:'https://a.espncdn.com/i/teamlogos/soccer/500/331.png', url:`${ESPN}/soccer/all/teams/331/schedule`,fixtureUrl:`${ESPN}/soccer/all/teams/331/schedule?fixture=true`,abbr:'BHA'}
+  ]
+};
+
+const NEWS_FEEDS={
+  boston:[
+    {label:'CNN Business',url:'https://rss.cnn.com/rss/money_latest.rss',publisher:'cnn'},
+    {label:'MSNBC / NBC Tech',url:'https://feeds.nbcnews.com/nbcnews/public/tech',publisher:'msnbc'},
+    {label:'Fox Business',url:'https://moxie.foxbusiness.com/google-publisher/latest.xml',publisher:'fox'}
+  ],
+  london:[
+    {label:'BBC Business',url:'https://feeds.bbci.co.uk/news/business/rss.xml',publisher:'bbc'},
+    {label:'BBC Technology',url:'https://feeds.bbci.co.uk/news/technology/rss.xml',publisher:'bbc'}
+  ]
+};
+const RSS_PROXY='https://api.rss2json.com/v1/api.json?rss_url=';
+const RSS_PROXY_ALT='https://api.allorigins.win/raw?url=';
+const NEWS_TIMEOUT_MS=2200;
+const NEWS_CACHE_KEY='mvf-dashboard-news-cache-v4';
+const NEWS_CACHE_TTL_MS=30*60*1000;
+const NEWS_FALLBACK_LINKS={
+  boston:[
+    {title:'Open CNN Business',link:'https://www.cnn.com/business'},
+    {title:'Open MSNBC business coverage',link:'https://www.msnbc.com/business'},
+    {title:'Open Fox Business',link:'https://www.foxbusiness.com/'}
+  ],
+  london:[
+    {title:'Open BBC Business',link:'https://www.bbc.com/news/business'},
+    {title:'Open BBC Technology',link:'https://www.bbc.com/news/technology'},
+    {title:'Open BBC AI coverage',link:'https://www.bbc.com/news/topics/cx2pk70323et'}
+  ]
+};
+const NEWS_KEYWORDS=['ai','artificial intelligence','machine learning','openai','anthropic','google','microsoft','meta','nvidia','startup','startups','funding','earnings','market','markets','business','enterprise','software','cloud','chip','chips','semiconductor','productivity','automation','technology','tech','robotics','data center'];
+const NEWS_EXCLUDE_KEYWORDS=['crime','murder','killed','shooting','stabbing','arrest','arrested','police','court','sentenced','prison','war','election','elections','parliament','congress','senate','campaign'];
+
+function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtTime(d){return new Date(d).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
+
+// Now we know: score is at competitor.score.value, not competitor.score
+// And last completed game = last event where statusCompleted === true
+// Next game = first event where statusCompleted === false and date > now
+async function fetchTeamData(team){
+  try{
+    // Fetch results, optional extra (e.g. postseason), and fixtures
+    const [resultsRes, extraRes, fixturesRes] = await Promise.all([
+      fetch(team.url),
+      team.extraUrl ? fetch(team.extraUrl) : Promise.resolve(null),
+      team.fixtureUrl ? fetch(team.fixtureUrl) : Promise.resolve(null)
+    ]);
+    const resultsJson = await resultsRes.json();
+    const extraJson = extraRes ? await extraRes.json() : null;
+    const fixturesJson = fixturesRes ? await fixturesRes.json() : resultsJson;
+
+    const resultsEvents = [
+      ...(resultsJson.events || []),
+      ...(extraJson ? (extraJson.events || []) : [])
+    ];
+    const fixtureEvents = fixturesJson.events || [];
+    const now = Date.now();
+
+    // Last completed competitive game - ignore pre-season (before Aug 1 2025), sort by date to get most recent
+    const seasonStart = new Date('2025-08-01').getTime();
+    const completed = resultsEvents
+      .filter(e=>
+        e.competitions?.[0]?.status?.type?.completed===true &&
+        new Date(e.date).getTime() >= seasonStart
+      )
+      .sort((a,b)=> new Date(b.date).getTime() - new Date(a.date).getTime());
+    const lastEvent = completed[0] || null;
+
+    // Next game: from fixtures endpoint if available, otherwise from results
+    const nextEvent = fixtureEvents.find(e=>
+      e.competitions?.[0]?.status?.type?.completed===false &&
+      new Date(e.date).getTime() > now
+    ) || resultsEvents.find(e=>
+      e.competitions?.[0]?.status?.type?.completed===false &&
+      new Date(e.date).getTime() > now
+    ) || null;
+
+    let lastText='No recent game', lastScore='-', lastResult='next';
+    let nextText='No upcoming games', nextDate='';
+
+    if(lastEvent){
+      const comp=lastEvent.competitions[0];
+      const competitors=comp.competitors||[];
+      const mine=competitors.find(c=>c.team?.abbreviation===team.abbr)||competitors[0];
+      const opp=competitors.find(c=>c!==mine)||competitors[1];
+      // Score is at score.value (confirmed from debug output)
+      const myScore=mine?.score?.value;
+      const oppScore=opp?.score?.value;
+      const oppAbbr=opp?.team?.abbreviation||'?';
+      const isHome=mine?.homeAway==='home';
+      lastText=(isHome?'vs':'@')+' '+oppAbbr+' &middot; '+fmtDate(lastEvent.date);
+      if(myScore!==undefined && oppScore!==undefined){
+        const won=myScore>oppScore;
+        lastResult=won?'win':'loss';
+        lastScore=Math.round(myScore)+'-'+Math.round(oppScore)+' '+(won?'W':'L');
+      }else{
+        lastScore='Final';
+      }
+    }
+
+    if(nextEvent){
+      const comp=nextEvent.competitions[0];
+      const competitors=comp.competitors||[];
+      const mine=competitors.find(c=>c.team?.abbreviation===team.abbr)||competitors[0];
+      const opp=competitors.find(c=>c!==mine)||competitors[1];
+      const oppAbbr=opp?.team?.abbreviation||'?';
+      const isHome=mine?.homeAway==='home';
+      nextText=(isHome?'vs':'@')+' '+oppAbbr;
+      nextDate=fmtDate(nextEvent.date)+', '+fmtTime(nextEvent.date);
+    }
+
+    return{lastText,lastScore,lastResult,nextText,nextDate};
+  }catch(err){
+    return{lastText:'Unavailable',lastScore:'-',lastResult:'next',nextText:'Unavailable',nextDate:''};
+  }
+}
+
+async function fetchAndRenderSports(cityId){
+  const el=document.getElementById('card-sports-'+cityId);
+  if(!el)return;
+  const teams=TEAMS[cityId];
+  const results=await Promise.all(teams.map(t=>fetchTeamData(t)));
+  el.innerHTML='<div class="card-h2">&#x1F3C6; Sports</div>'+teams.map((t,i)=>{
+    const r=results[i];
+    return '<div class="sport-block">'
+      +'<div class="team-header"><img class="team-logo" src="'+t.logo+'" alt="'+t.name+'"><span class="team-name">'+t.name+'</span></div>'
+      +'<div class="sport-row"><span class="sport-label">Last</span><span class="sport-matchup">'+r.lastText+'</span><span class="sport-score '+r.lastResult+'">'+r.lastScore+'</span></div>'
+      +'<div class="sport-row"><span class="sport-label">Next</span><span class="sport-matchup">'+r.nextText+'</span><span class="sport-score next">'+r.nextDate+'</span></div>'
+      +'</div>';
+  }).join('');
+}
+
+async function fetchWeather(city){
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+city.lat+'&longitude='+city.lon+'&current=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,precipitation_probability_max&temperature_unit=celsius&timezone=auto&forecast_days=10';
+  const res=await fetch(url);
+  if(!res.ok)throw new Error('err');
+  return res.json();
+}
+
+function renderWeatherCard(city,data){
+  const currC=data.current.temperature_2m;
+  const currF=toF(currC);
+  const code=data.current.weathercode;
+  const daily=data.daily;
+  const metric=city.id==='london';
+  const rows=daily.time.map((dateStr,i)=>{
+    const hiC=daily.temperature_2m_max[i];
+    const hiF=toF(hiC);
+    const precip=daily.precipitation_probability_max[i]||0;
+    const wcode=daily.weathercode[i];
+    const day=DAYS[new Date(dateStr+'T12:00:00').getDay()];
+    const pClass=isSnowCode(wcode)&&precip>=50?'snow-likely':precip>=50?'likely':'';
+    const tempStr=metric?Math.round(hiC)+'&deg;C / '+hiF+'&deg;F':hiF+'&deg;F / '+Math.round(hiC)+'&deg;C';
+    return '<div class="forecast-row"><span class="f-day">'+day+'</span><span class="f-icon">'+wmoIcon(wcode)+'</span><span class="f-hi '+city.tempClass+'">'+tempStr+'</span><span class="f-precip '+pClass+'">'+precip+'%</span></div>';
+  }).join('');
+  const pt=metric?Math.round(currC)+'<span class="temp-unit">&deg;C</span>':currF+'<span class="temp-unit">&deg;F</span>';
+  const st=metric?currF+'&deg;F':Math.round(currC)+'&deg;C';
+  return '<div class="card-h2">&#9729;&#65039; Weather</div><div class="main-icon">'+wmoIcon(code)+'</div><div class="condition-text">'+wmoLabel(code)+'</div><div class="temp-block"><div class="temp-primary '+city.tempClass+'">'+pt+'</div><div class="temp-secondary">'+st+'</div></div><div class="forecast-label">10-Day Forecast</div>'+rows;
+}
+
+function withTimeout(promise, ms=NEWS_TIMEOUT_MS){
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('timeout')), ms);
+    promise.then(value=>{clearTimeout(timer); resolve(value);}).catch(err=>{clearTimeout(timer); reject(err);});
+  });
+}
+
+async function fetchFeedItems(feedUrl){
+  try{
+    const res=await withTimeout(fetch(RSS_PROXY+encodeURIComponent(feedUrl)+'&count=12'), NEWS_TIMEOUT_MS);
+    const data=await withTimeout(res.json(), NEWS_TIMEOUT_MS);
+    if(data.status==='ok' && Array.isArray(data.items) && data.items.length){
+      return data.items;
+    }
+  }catch(e){}
+
+  try{
+    const res=await withTimeout(fetch(RSS_PROXY_ALT+encodeURIComponent(feedUrl)), NEWS_TIMEOUT_MS);
+    const xmlText=await withTimeout(res.text(), NEWS_TIMEOUT_MS);
+    if(!xmlText)return [];
+    const xml=new DOMParser().parseFromString(xmlText,'text/xml');
+    return [...xml.querySelectorAll('item')].slice(0,12).map(item=>({
+      title:item.querySelector('title')?.textContent||'',
+      link:item.querySelector('link')?.textContent||'',
+      pubDate:item.querySelector('pubDate')?.textContent||'',
+      description:item.querySelector('description')?.textContent||'',
+      categories:[...item.querySelectorAll('category')].map(c=>c.textContent||'')
+    })).filter(item=>item.title&&item.link);
+  }catch(e){
+    return [];
+  }
+}
+
+function readNewsCache(){
+  try{
+    return JSON.parse(localStorage.getItem(NEWS_CACHE_KEY)||'{}');
+  }catch(e){
+    return {};
+  }
+}
+
+function writeNewsCache(cache){
+  try{
+    localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(cache));
+  }catch(e){}
+}
+
+function renderNewsCard(cityId, articles, isCached=false){
+  const el=document.getElementById('card-news-'+cityId);
+  if(!el)return;
+  const newsHTML=articles.length
+    ? articles.map(a=>'<div class="news-item"><a class="news-link" href="'+a.link+'" target="_blank" rel="noopener">'+a.title+'</a><div class="news-date">'+a.date+'</div></div>').join('')
+    : NEWS_FALLBACK_LINKS[cityId].map(a=>'<div class="news-item"><a class="news-link" href="'+a.link+'" target="_blank" rel="noopener">'+a.title+'</a><div class="news-date">Direct source link</div></div>').join('');
+  el.innerHTML='<div class="card-h2">&#x1F4F0; Business &amp; AI</div><div class="news-date" style="margin-bottom:8px">'+sourceLabel(cityId)+(isCached?' &middot; updating...':'')+'</div>'+newsHTML;
+}
+
+function sourceLabel(cityId){
+  return cityId==='boston' ? 'CNN, NBC/MSNBC-adjacent tech & Fox Business' : 'BBC business & technology';
+}
+
+function publisherBoost(text, cityId, feed){
+  let score=0;
+  const publisher=feed?.publisher||'';
+  if(cityId==='boston'){
+    if(publisher==='cnn' || text.includes('cnn'))score+=4;
+    if(publisher==='msnbc' || text.includes('msnbc') || text.includes('nbc news') || text.includes('nbcnews'))score+=3;
+    if(publisher==='fox' || text.includes('fox business')||text.includes('fox news')||text.includes('foxbusiness'))score+=4;
+  }else{
+    if(publisher==='bbc' || text.includes('bbc'))score+=5;
+  }
+  return score;
+}
+
+function scoreNewsItem(item, cityId, feed){
+  const text=((item.title||'')+' '+(item.description||'')+' '+(item.author||'')+' '+(item.categories||[]).join(' ')).toLowerCase();
+  let score=publisherBoost(text, cityId, feed);
+  NEWS_KEYWORDS.forEach(keyword=>{if(text.includes(keyword))score+=2;});
+  NEWS_EXCLUDE_KEYWORDS.forEach(keyword=>{if(text.includes(keyword))score-=4;});
+  if(text.includes('ai')||text.includes('artificial intelligence'))score+=4;
+  if(text.includes('business')||text.includes('market')||text.includes('earnings')||text.includes('funding'))score+=3;
+  if(cityId==='boston'){
+    if(text.includes('boston'))score+=2;
+    if(text.includes('massachusetts'))score+=2;
+    if(text.includes('u.s.')||text.includes('united states')||text.includes('american'))score+=1;
+  }else{
+    if(text.includes('london'))score+=2;
+    if(text.includes('uk')||text.includes('u.k.')||text.includes('britain')||text.includes('british'))score+=2;
+  }
+  return score;
+}
+
+async function fetchAndRenderNews(cityId){
+  const el=document.getElementById('card-news-'+cityId);
+  if(!el)return;
+
+  const cache=readNewsCache();
+  const cachedCity=cache[cityId];
+  if(cachedCity && cachedCity.savedAt && Date.now()-cachedCity.savedAt<NEWS_CACHE_TTL_MS && Array.isArray(cachedCity.articles) && cachedCity.articles.length){
+    renderNewsCard(cityId, cachedCity.articles, true);
+  }
+
+  const feeds=NEWS_FEEDS[cityId];
+  const fourteenDaysAgo=Date.now()-14*24*60*60*1000;
+  const seenLinks=new Set();
+  const candidates=[];
+
+  const feedResults=await Promise.allSettled(feeds.map(feed=>fetchFeedItems(feed.url).then(items=>({feed,items}))));
+
+  for(const result of feedResults){
+    if(result.status!=='fulfilled' || !result.value)continue;
+    const {feed,items}=result.value;
+    for(const item of items){
+      const pubTime=new Date(item.pubDate).getTime();
+      if(!item.link||seenLinks.has(item.link))continue;
+      if(pubTime && pubTime<fourteenDaysAgo)continue;
+      seenLinks.add(item.link);
+      candidates.push({
+        title:(item.title||'').replace(/\s+-\s+[^-]+$/,''),
+        link:item.link,
+        date:item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : feed.label,
+        pubTime:pubTime||0,
+        score:scoreNewsItem(item, cityId, feed)
+      });
+    }
+  }
+
+  const topArticles=[...candidates]
+    .sort((a,b)=>b.score-a.score||b.pubTime-a.pubTime)
+    .slice(0,3);
+
+  if(topArticles.length){
+    cache[cityId]={savedAt:Date.now(), articles:topArticles};
+    writeNewsCache(cache);
+    renderNewsCard(cityId, topArticles, false);
+  }else if(cachedCity && Array.isArray(cachedCity.articles) && cachedCity.articles.length){
+    renderNewsCard(cityId, cachedCity.articles, false);
+  }else{
+    renderNewsCard(cityId, [], false);
+  }
+}
+
+function animateVisibleCards(){
+  const visibleCards=[...document.querySelectorAll('.section-card')].filter(card=>{
+    const styles=window.getComputedStyle(card);
+    return styles.display!=='none' && styles.maxHeight!=='0px' && parseFloat(styles.opacity)>0;
+  });
+  visibleCards.forEach((card,index)=>{
+    card.classList.remove('is-entering');
+    card.style.animationDelay=(index*90)+'ms';
+    void card.offsetWidth;
+    card.classList.add('is-entering');
+    setTimeout(()=>{card.classList.remove('is-entering');card.style.animationDelay='0ms';}, 1050 + index*90);
+  });
+}
+
+function setActiveTab(tab){
+  const dashboard=document.getElementById('dashboard-grid');
+  if(!dashboard)return;
+  dashboard.classList.add('filtering');
+  dashboard.classList.remove('filter-weather','filter-sports','filter-news');
+  if(tab==='weather')dashboard.classList.add('filter-weather');
+  if(tab==='sports')dashboard.classList.add('filter-sports');
+  if(tab==='news')dashboard.classList.add('filter-news');
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab));
+  try{localStorage.setItem('mvf-active-tab', tab);}catch(e){}
+  requestAnimationFrame(()=>{
+    animateVisibleCards();
+    setTimeout(()=>dashboard.classList.remove('filtering'), 760);
+  });
+}
+
+function setupTabs(){
+  const savedTab=(()=>{try{return localStorage.getItem('mvf-active-tab')||'all';}catch(e){return 'all';}})();
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>setActiveTab(btn.dataset.tab));
+  });
+  setActiveTab(savedTab);
+}
+
+async function init(){
+  const now=new Date();
+  document.getElementById('dateline').textContent=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('updated-time').textContent='Last updated '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  setupTabs();
+  CITIES.forEach(async city=>{
+    try{
+      const data=await fetchWeather(city);
+      document.getElementById('card-weather-'+city.id).innerHTML=renderWeatherCard(city,data);
+    }catch(e){
+      document.getElementById('card-weather-'+city.id).innerHTML='<div class="error-msg">Could not load weather.<br>Please refresh.</div>';
+    }
+    fetchAndRenderSports(city.id);
+    fetchAndRenderNews(city.id);
+  });
+}
+init();
+</script>
+</body>
+</html>
